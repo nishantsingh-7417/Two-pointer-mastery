@@ -14,7 +14,7 @@ An interactive course to master the **Two Pointer technique** used in Data Struc
 
 ## Demo
 
-Live project: https://your-deployed-link.com
+Live project: https://nishantsingh-7417.github.io/Two-pointer-mastery/index.html
 
 ## Tech Stack
 
