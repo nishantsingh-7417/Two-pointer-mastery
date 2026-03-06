@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two Pointer Mastery</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #2a2a3a;
+    --accent: #00f5c4;
+    --accent2: #ff6b6b;
+    --accent3: #7c6fff;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --code-bg: #0d0d14;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    padding: 60px 40px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .hero-glow {
+    position: absolute;
+    top: -60px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(0,245,196,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(0,245,196,0.1);
+    border: 1px solid rgba(0,245,196,0.3);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    padding: 5px 14px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 70%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 16px;
+    margin-top: 12px;
+    font-weight: 400;
+  }
+
+  /* ── PROGRESS NAV ── */
+  .progress-bar {
+    display: flex;
+    gap: 0;
+    padding: 0 40px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .progress-bar::-webkit-scrollbar { display: none; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    transition: all 0.2s;
+    position: relative;
+  }
+  .nav-item:hover { color: var(--text); }
+  .nav-item.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .nav-num {
+    width: 22px; height: 22px;
+    background: var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+  }
+  .nav-item.active .nav-num {
+    background: var(--accent);
+    color: #000;
+  }
+  .nav-item.done .nav-num {
+    background: rgba(0,245,196,0.2);
+    color: var(--accent);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── SECTIONS ── */
+  .section { display: none; animation: fadeUp 0.4s ease; }
+  .section.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,245,196,0.2), transparent);
+  }
+  .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title .icon {
+    font-size: 22px;
+  }
+
+  /* ── CONCEPT HIGHLIGHT ── */
+  .concept-box {
+    background: rgba(0,245,196,0.05);
+    border: 1px solid rgba(0,245,196,0.2);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 4px;
+    margin: 16px 0;
+    font-size: 15px;
+  }
+  .warn-box {
+    background: rgba(255,107,107,0.05);
+    border: 1px solid rgba(255,107,107,0.2);
+    border-left: 3px solid var(--accent2);
+    padding: 16px 20px;
+    border-radius: 4px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #ffb3b3;
+  }
+
+  /* ── CODE BLOCKS ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 16px 0;
+  }
+  .kw { color: #7c6fff; }
+  .fn { color: #00f5c4; }
+  .cm { color: #4a4a6a; font-style: italic; }
+  .str { color: #ff9f7f; }
+  .num { color: #ff6b6b; }
+  .var { color: #e8e8f0; }
+
+  /* ── VISUAL ANIMATOR ── */
+  .visualizer {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 20px 0;
+  }
+  .vis-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .array-display {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .arr-box {
+    width: 50px; height: 50px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+  }
+  .arr-box.left {
+    border-color: var(--accent);
+    background: rgba(0,245,196,0.1);
+    color: var(--accent);
+    transform: translateY(-6px);
+    box-shadow: 0 4px 20px rgba(0,245,196,0.2);
+  }
+  .arr-box.right {
+    border-color: var(--accent2);
+    background: rgba(255,107,107,0.1);
+    color: var(--accent2);
+    transform: translateY(-6px);
+    box-shadow: 0 4px 20px rgba(255,107,107,0.2);
+  }
+  .arr-box.match {
+    border-color: #ffd700;
+    background: rgba(255,215,0,0.15);
+    color: #ffd700;
+    transform: translateY(-10px) scale(1.1);
+    box-shadow: 0 8px 30px rgba(255,215,0,0.3);
+    animation: pulse 0.5s ease;
+  }
+  @keyframes pulse {
+    0% { transform: translateY(-10px) scale(1); }
+    50% { transform: translateY(-14px) scale(1.15); }
+    100% { transform: translateY(-10px) scale(1.1); }
+  }
+  .arr-idx {
+    font-size: 9px;
+    color: var(--muted);
+    font-weight: 400;
+    position: absolute;
+    bottom: -18px;
+  }
+  .pointer-label {
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    margin-top: 24px;
+  }
+  .lbl-L { color: var(--accent); }
+  .lbl-R { color: var(--accent2); }
+
+  .vis-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 22px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 700;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .btn.primary:hover {
+    background: #00c9a0;
+    box-shadow: 0 4px 20px rgba(0,245,196,0.3);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .vis-status {
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    padding: 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    margin-top: 12px;
+    min-height: 44px;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* ── PATTERNS GRID ── */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .pattern-card {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pattern-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 80% 20%, rgba(0,245,196,0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .pattern-card:hover { border-color: var(--accent3); transform: translateY(-3px); }
+  .pattern-card:hover::after { opacity: 1; }
+  .pattern-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+  }
+  .tag-easy { background: rgba(0,245,196,0.15); color: var(--accent); }
+  .tag-med { background: rgba(255,159,127,0.15); color: #ff9f7f; }
+  .tag-hard { background: rgba(255,107,107,0.15); color: var(--accent2); }
+  .pattern-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .pattern-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* ── PROBLEMS ── */
+  .problem {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .problem-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    background: var(--card);
+    transition: background 0.2s;
+    user-select: none;
+  }
+  .problem-header:hover { background: #1a1a25; }
+  .problem-diff {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+  }
+  .diff-e { background: rgba(0,245,196,0.15); color: var(--accent); }
+  .diff-m { background: rgba(255,159,127,0.15); color: #ff9f7f; }
+  .diff-h { background: rgba(255,107,107,0.15); color: var(--accent2); }
+  .problem-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .chevron { color: var(--muted); font-size: 12px; transition: transform 0.3s; }
+  .problem-body {
+    display: none;
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    background: var(--code-bg);
+  }
+  .problem-body.open { display: block; animation: fadeUp 0.3s ease; }
+  .problem-body .chevron { transform: rotate(180deg); }
+
+  /* ── COMPLEXITY TABLE ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 16px 0;
+  }
+  th {
+    background: rgba(0,245,196,0.08);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0,245,196,0.2);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ── SECTION NAV BUTTONS ── */
+  .section-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── QUIZ ── */
+  .quiz-q {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+  .quiz-q p { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+  .quiz-opt {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .quiz-opt label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: 'Space Mono', monospace;
+  }
+  .quiz-opt label:hover { border-color: var(--accent3); }
+  .quiz-opt label.correct { border-color: var(--accent); background: rgba(0,245,196,0.08); color: var(--accent); }
+  .quiz-opt label.wrong { border-color: var(--accent2); background: rgba(255,107,107,0.08); color: var(--accent2); }
+  .quiz-opt input { display: none; }
+  .quiz-check { margin-top: 12px; }
+
+  /* ── CHEATSHEET ── */
+  .cheat-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0;
+    font-size: 14px;
+  }
+  .cheat-row:last-child { border-bottom: none; }
+  .cheat-key { font-family: 'Space Mono', monospace; color: var(--accent); font-size: 13px; }
+  .cheat-val { color: var(--muted); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header { padding: 40px 20px 30px; }
+    main { padding: 24px 16px 60px; }
+    .arr-box { width: 40px; height: 40px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hero-glow"></div>
+  <div class="badge">DSA Pattern Series</div>
+  <h1>Two Pointer<br>Mastery</h1>
+  <p class="subtitle">From zero to confident — learn visually, practice deeply, think clearly</p>
+</header>
+
+<nav class="progress-bar" id="progressNav">
+  <div class="nav-item active" onclick="showSection(0)">
+    <span class="nav-num">1</span> What & Why
+  </div>
+  <div class="nav-item" onclick="showSection(1)">
+    <span class="nav-num">2</span> Core Patterns
+  </div>
+  <div class="nav-item" onclick="showSection(2)">
+    <span class="nav-num">3</span> Live Visualizer
+  </div>
+  <div class="nav-item" onclick="showSection(3)">
+    <span class="nav-num">4</span> Classic Problems
+  </div>
+  <div class="nav-item" onclick="showSection(4)">
+    <span class="nav-num">5</span> Advanced
+  </div>
+  <div class="nav-item" onclick="showSection(5)">
+    <span class="nav-num">6</span> Quiz
+  </div>
+  <div class="nav-item" onclick="showSection(6)">
+    <span class="nav-num">7</span> Cheat Sheet
+  </div>
+</nav>
+
+<main>
+
+  <!-- ═══════════ SECTION 1: WHAT & WHY ═══════════ -->
+  <div class="section active" id="sec0">
+    <div class="card">
+      <div class="card-title"><span class="icon">🧠</span> What is Two Pointer?</div>
+      <p style="font-size:15px;color:var(--muted);line-height:1.8;">
+        Two Pointer is a technique where you use <strong style="color:var(--text)">two index variables</strong> to traverse a data structure (usually an array or string) simultaneously — instead of using nested loops.
+      </p>
+      <div class="concept-box">
+        💡 <strong>Core Insight:</strong> When a problem involves searching pairs, subarrays, or comparisons in a linear structure — two pointers can reduce O(n²) to O(n).
+      </div>
+      <p style="color:var(--muted);font-size:14px;margin-top:12px;">Think of it like two people reading a book — one from the front, one from the back — and they walk toward each other until they meet.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">⚡</span> Why Does It Work?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">
+        <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:8px;padding:16px;">
+          <div style="color:var(--accent2);font-family:'Space Mono',monospace;font-size:11px;margin-bottom:8px;letter-spacing:1px;">BRUTE FORCE</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent2);">O(n²)</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Check every pair — 2 nested loops</div>
+        </div>
+        <div style="background:rgba(0,245,196,0.08);border:1px solid rgba(0,245,196,0.2);border-radius:8px;padding:16px;">
+          <div style="color:var(--accent);font-family:'Space Mono',monospace;font-size:11px;margin-bottom:8px;letter-spacing:1px;">TWO POINTER</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent);">O(n)</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Smart convergence — single pass</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔑</span> When to Use Two Pointers?</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:16px;">Ask yourself these questions when you see a problem:</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--code-bg);border-radius:8px;border:1px solid var(--border);">
+          <span style="color:var(--accent);font-size:18px;flex-shrink:0;">✓</span>
+          <div><strong>Sorted array?</strong> <span style="color:var(--muted);font-size:13px;">Two pointers shine on sorted data — you can decide which pointer to move based on comparisons.</span></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--code-bg);border-radius:8px;border:1px solid var(--border);">
+          <span style="color:var(--accent);font-size:18px;flex-shrink:0;">✓</span>
+          <div><strong>Find a pair/triplet with sum = target?</strong> <span style="color:var(--muted);font-size:13px;">Classic two-sum pattern.</span></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--code-bg);border-radius:8px;border:1px solid var(--border);">
+          <span style="color:var(--accent);font-size:18px;flex-shrink:0;">✓</span>
+          <div><strong>Palindrome / reverse check?</strong> <span style="color:var(--muted);font-size:13px;">One from start, one from end.</span></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--code-bg);border-radius:8px;border:1px solid var(--border);">
+          <span style="color:var(--accent);font-size:18px;flex-shrink:0;">✓</span>
+          <div><strong>Remove duplicates / partition array?</strong> <span style="color:var(--muted);font-size:13px;">Slow & fast pointer pattern.</span></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--code-bg);border-radius:8px;border:1px solid var(--border);">
+          <span style="color:var(--accent);font-size:18px;flex-shrink:0;">✓</span>
+          <div><strong>Linked list cycle / middle?</strong> <span style="color:var(--muted);font-size:13px;">Fast & slow pointer (Floyd's algorithm).</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🗺️</span> The 3 Flavors of Two Pointers</div>
+      <div class="pattern-grid">
+        <div class="pattern-card">
+          <div class="pattern-tag tag-easy">OPPOSITE ENDS</div>
+          <div class="pattern-name">Converging Pointers</div>
+          <div class="pattern-desc">L starts at index 0, R at end. They move toward each other. Used for: pair sum, palindrome, container with most water.</div>
+        </div>
+        <div class="pattern-card">
+          <div class="pattern-tag tag-med">SAME DIRECTION</div>
+          <div class="pattern-name">Fast & Slow</div>
+          <div class="pattern-desc">Both start at 0. Slow writes, fast reads ahead. Used for: remove duplicates, partition, linked list cycle.</div>
+        </div>
+        <div class="pattern-card">
+          <div class="pattern-tag tag-hard">TWO ARRAYS</div>
+          <div class="pattern-name">Parallel Traversal</div>
+          <div class="pattern-desc">One pointer per array. Used for: merge sorted arrays, compare strings, intersection.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <div></div>
+      <button class="btn primary" onclick="showSection(1)">Next: Core Patterns →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION 2: CORE PATTERNS ═══════════ -->
+  <div class="section" id="sec1">
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🎯</span> Pattern 1: Opposite Ends (Two Sum Sorted)</div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:12px;">Array is sorted. Find two numbers that sum to a target.</p>
+      <div class="concept-box">
+        <strong>Logic:</strong> If sum &lt; target → move L right (need bigger). If sum &gt; target → move R left (need smaller). If sum = target → found!
+      </div>
+<pre>
+<span class="kw">def</span> <span class="fn">two_sum_sorted</span>(arr, target):
+    L, R = <span class="num">0</span>, len(arr) - <span class="num">1</span>
+    
+    <span class="kw">while</span> L &lt; R:
+        s = arr[L] + arr[R]
+        
+        <span class="kw">if</span> s == target:
+            <span class="kw">return</span> [L, R]          <span class="cm"># ✅ Found!</span>
+        <span class="kw">elif</span> s &lt; target:
+            L += <span class="num">1</span>                 <span class="cm"># need bigger → move L right</span>
+        <span class="kw">else</span>:
+            R -= <span class="num">1</span>                 <span class="cm"># need smaller → move R left</span>
+    
+    <span class="kw">return</span> []                   <span class="cm"># not found</span>
+</pre>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;font-family:'Space Mono',monospace;margin-top:4px;">
+        <div style="background:rgba(0,245,196,0.06);border:1px solid rgba(0,245,196,0.15);border-radius:6px;padding:12px;">⏱ Time: O(n)</div>
+        <div style="background:rgba(0,245,196,0.06);border:1px solid rgba(0,245,196,0.15);border-radius:6px;padding:12px;">💾 Space: O(1)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔄</span> Pattern 2: Fast & Slow — Remove Duplicates</div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:12px;">Sorted array — remove duplicates in-place.</p>
+      <div class="concept-box">
+        <strong>Logic:</strong> <code style="color:var(--accent)">slow</code> = write position. <code style="color:var(--accent2)">fast</code> = reader. Only write when fast finds a new value.
+      </div>
+<pre>
+<span class="kw">def</span> <span class="fn">remove_duplicates</span>(nums):
+    <span class="kw">if not</span> nums: <span class="kw">return</span> <span class="num">0</span>
+    
+    slow = <span class="num">0</span>               <span class="cm"># slow = last written position</span>
+    
+    <span class="kw">for</span> fast <span class="kw">in</span> range(<span class="num">1</span>, len(nums)):
+        <span class="kw">if</span> nums[fast] != nums[slow]:
+            slow += <span class="num">1</span>       <span class="cm"># move write head forward</span>
+            nums[slow] = nums[fast]  <span class="cm"># write unique value</span>
+    
+    <span class="kw">return</span> slow + <span class="num">1</span>          <span class="cm"># count of unique elements</span>
+
+<span class="cm"># [1,1,2,3,3,4] → [1,2,3,4,_,_], returns 4</span>
+</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏃</span> Pattern 3: Palindrome Check</div>
+<pre>
+<span class="kw">def</span> <span class="fn">is_palindrome</span>(s):
+    L, R = <span class="num">0</span>, len(s) - <span class="num">1</span>
+    
+    <span class="kw">while</span> L &lt; R:
+        <span class="kw">if</span> s[L] != s[R]:
+            <span class="kw">return</span> <span class="kw">False</span>      <span class="cm"># mismatch found</span>
+        L += <span class="num">1</span>
+        R -= <span class="num">1</span>
+    
+    <span class="kw">return</span> <span class="kw">True</span>
+
+<span class="cm"># "racecar" → True | "hello" → False</span>
+</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🧩</span> Pattern 4: Three Sum (Reduces to Two Sum)</div>
+      <div class="concept-box">
+        <strong>Key Insight:</strong> Sort first. Fix one element, then use two pointers on the rest. O(n²) total — much better than O(n³) brute force.
+      </div>
+<pre>
+<span class="kw">def</span> <span class="fn">three_sum</span>(nums):
+    nums.sort()
+    result = []
+    
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(nums) - <span class="num">2</span>):
+        <span class="cm"># Skip duplicates for fixed element</span>
+        <span class="kw">if</span> i > <span class="num">0</span> <span class="kw">and</span> nums[i] == nums[i-<span class="num">1</span>]: <span class="kw">continue</span>
+        
+        L, R = i + <span class="num">1</span>, len(nums) - <span class="num">1</span>
+        
+        <span class="kw">while</span> L &lt; R:
+            s = nums[i] + nums[L] + nums[R]
+            <span class="kw">if</span> s == <span class="num">0</span>:
+                result.append([nums[i], nums[L], nums[R]])
+                <span class="kw">while</span> L &lt; R <span class="kw">and</span> nums[L] == nums[L+<span class="num">1</span>]: L += <span class="num">1</span>
+                <span class="kw">while</span> L &lt; R <span class="kw">and</span> nums[R] == nums[R-<span class="num">1</span>]: R -= <span class="num">1</span>
+                L += <span class="num">1</span>; R -= <span class="num">1</span>
+            <span class="kw">elif</span> s &lt; <span class="num">0</span>: L += <span class="num">1</span>
+            <span class="kw">else</span>: R -= <span class="num">1</span>
+    
+    <span class="kw">return</span> result
+</pre>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn" onclick="showSection(0)">← Previous</button>
+      <button class="btn primary" onclick="showSection(2)">Next: Visualizer →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION 3: VISUALIZER ═══════════ -->
+  <div class="section" id="sec2">
+    <div class="card">
+      <div class="card-title"><span class="icon">🎬</span> Interactive Visualizer — Two Sum on Sorted Array</div>
+      <p style="color:var(--muted);font-size:14px;">Watch the two pointers move step by step. Target = <strong style="color:var(--accent)">9</strong></p>
+    </div>
+
+    <div class="visualizer">
+      <div class="vis-title">▶ Two Sum Sorted — Step Through</div>
+      <div class="array-display" id="arrDisplay"></div>
+      <div class="pointer-label" id="ptrLabel">L=0 &nbsp;|&nbsp; R=7 &nbsp;|&nbsp; sum=?</div>
+      <div class="vis-status" id="visStatus">Press ▶ START to begin</div>
+      <div class="vis-controls">
+        <button class="btn primary" id="startBtn" onclick="viStart()">▶ START</button>
+        <button class="btn" id="stepBtn" onclick="viStep()" disabled>⏭ NEXT STEP</button>
+        <button class="btn" id="resetBtn" onclick="viReset()">↺ RESET</button>
+      </div>
+    </div>
+
+    <div class="visualizer" style="margin-top:0">
+      <div class="vis-title">▶ Palindrome Check Visualizer</div>
+      <div id="palDisplay" class="array-display"></div>
+      <div class="pointer-label" id="palLabel"></div>
+      <div class="vis-status" id="palStatus">Press ▶ START to check "racecar"</div>
+      <div class="vis-controls">
+        <button class="btn primary" onclick="palStart()">▶ START</button>
+        <button class="btn" id="palStep" onclick="palStep()" disabled>⏭ NEXT STEP</button>
+        <button class="btn" onclick="palReset()">↺ RESET</button>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn" onclick="showSection(1)">← Previous</button>
+      <button class="btn primary" onclick="showSection(3)">Next: Problems →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION 4: CLASSIC PROBLEMS ═══════════ -->
+  <div class="section" id="sec3">
+    <div class="card">
+      <div class="card-title"><span class="icon">📚</span> Classic Problems — With Solutions</div>
+      <p style="color:var(--muted);font-size:14px;">Click any problem to expand full solution + intuition.</p>
+    </div>
+
+    <!-- Problem 1 -->
+    <div class="problem">
+      <div class="problem-header" onclick="toggleProblem(this)">
+        <span class="problem-diff diff-e">EASY</span>
+        <span class="problem-title">Valid Palindrome (LeetCode 125)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="problem-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Check if a string is a palindrome (only alphanumeric characters, case-insensitive).</p>
+<pre>
+<span class="kw">def</span> <span class="fn">isPalindrome</span>(s):
+    L, R = <span class="num">0</span>, len(s) - <span class="num">1</span>
+    <span class="kw">while</span> L &lt; R:
+        <span class="cm"># Skip non-alphanumeric</span>
+        <span class="kw">while</span> L &lt; R <span class="kw">and not</span> s[L].isalnum(): L += <span class="num">1</span>
+        <span class="kw">while</span> L &lt; R <span class="kw">and not</span> s[R].isalnum(): R -= <span class="num">1</span>
+        <span class="kw">if</span> s[L].lower() != s[R].lower(): <span class="kw">return False</span>
+        L += <span class="num">1</span>; R -= <span class="num">1</span>
+    <span class="kw">return True</span>
+</pre>
+        <div class="concept-box">💡 <strong>Tip:</strong> Skip chars that aren't a-z or 0-9 before comparing. Inner while loops handle skipping efficiently.</div>
+      </div>
+    </div>
+
+    <!-- Problem 2 -->
+    <div class="problem">
+      <div class="problem-header" onclick="toggleProblem(this)">
+        <span class="problem-diff diff-e">EASY</span>
+        <span class="problem-title">Move Zeroes to End (LeetCode 283)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="problem-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Move all 0s to end while maintaining relative order of non-zero elements.</p>
+<pre>
+<span class="kw">def</span> <span class="fn">moveZeroes</span>(nums):
+    slow = <span class="num">0</span>   <span class="cm"># write position</span>
+    <span class="kw">for</span> fast <span class="kw">in</span> range(len(nums)):
+        <span class="kw">if</span> nums[fast] != <span class="num">0</span>:
+            nums[slow] = nums[fast]
+            slow += <span class="num">1</span>
+    <span class="cm"># Fill rest with zeros</span>
+    <span class="kw">while</span> slow &lt; len(nums):
+        nums[slow] = <span class="num">0</span>
+        slow += <span class="num">1</span>
+
+<span class="cm"># [0,1,0,3,12] → [1,3,12,0,0]</span>
+</pre>
+      </div>
+    </div>
+
+    <!-- Problem 3 -->
+    <div class="problem">
+      <div class="problem-header" onclick="toggleProblem(this)">
+        <span class="problem-diff diff-m">MEDIUM</span>
+        <span class="problem-title">Container With Most Water (LeetCode 11)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="problem-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Find two lines that form a container holding the most water.</p>
+        <div class="concept-box">💡 <strong>Intuition:</strong> Area = min(height[L], height[R]) × (R - L). Always move the <strong>shorter</strong> side inward — keeping the taller side can only help.</div>
+<pre>
+<span class="kw">def</span> <span class="fn">maxArea</span>(height):
+    L, R = <span class="num">0</span>, len(height) - <span class="num">1</span>
+    max_water = <span class="num">0</span>
+    
+    <span class="kw">while</span> L &lt; R:
+        h = min(height[L], height[R])
+        water = h * (R - L)
+        max_water = max(max_water, water)
+        
+        <span class="cm"># Move the shorter wall</span>
+        <span class="kw">if</span> height[L] &lt; height[R]:
+            L += <span class="num">1</span>
+        <span class="kw">else</span>:
+            R -= <span class="num">1</span>
+    
+    <span class="kw">return</span> max_water
+</pre>
+      </div>
+    </div>
+
+    <!-- Problem 4 -->
+    <div class="problem">
+      <div class="problem-header" onclick="toggleProblem(this)">
+        <span class="problem-diff diff-m">MEDIUM</span>
+        <span class="problem-title">Trapping Rain Water (LeetCode 42)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="problem-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Given elevation map, compute how much water it can trap.</p>
+        <div class="concept-box">💡 <strong>Key:</strong> Water at any position = min(max_left, max_right) - height[i]. Two pointers track running max from each side.</div>
+<pre>
+<span class="kw">def</span> <span class="fn">trap</span>(height):
+    L, R = <span class="num">0</span>, len(height) - <span class="num">1</span>
+    left_max = right_max = water = <span class="num">0</span>
+    
+    <span class="kw">while</span> L &lt; R:
+        <span class="kw">if</span> height[L] &lt; height[R]:
+            <span class="kw">if</span> height[L] &gt;= left_max:
+                left_max = height[L]
+            <span class="kw">else</span>:
+                water += left_max - height[L]
+            L += <span class="num">1</span>
+        <span class="kw">else</span>:
+            <span class="kw">if</span> height[R] &gt;= right_max:
+                right_max = height[R]
+            <span class="kw">else</span>:
+                water += right_max - height[R]
+            R -= <span class="num">1</span>
+    
+    <span class="kw">return</span> water
+</pre>
+      </div>
+    </div>
+
+    <!-- Problem 5 -->
+    <div class="problem">
+      <div class="problem-header" onclick="toggleProblem(this)">
+        <span class="problem-diff diff-h">HARD</span>
+        <span class="problem-title">Minimum Window Substring (LeetCode 76)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="problem-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px;">Find minimum window in s containing all chars of t. Uses sliding window variant of two pointers.</p>
+<pre>
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+<span class="kw">def</span> <span class="fn">minWindow</span>(s, t):
+    need = Counter(t)
+    have, total = <span class="num">0</span>, len(need)
+    window = {}
+    res, resLen = [-<span class="num">1</span>, -<span class="num">1</span>], float(<span class="str">'inf'</span>)
+    L = <span class="num">0</span>
+    
+    <span class="kw">for</span> R <span class="kw">in</span> range(len(s)):
+        c = s[R]
+        window[c] = window.get(c, <span class="num">0</span>) + <span class="num">1</span>
+        <span class="kw">if</span> c <span class="kw">in</span> need <span class="kw">and</span> window[c] == need[c]:
+            have += <span class="num">1</span>
+        
+        <span class="kw">while</span> have == total:
+            <span class="kw">if</span> (R - L + <span class="num">1</span>) &lt; resLen:
+                res, resLen = [L, R], R - L + <span class="num">1</span>
+            window[s[L]] -= <span class="num">1</span>
+            <span class="kw">if</span> s[L] <span class="kw">in</span> need <span class="kw">and</span> window[s[L]] &lt; need[s[L]]:
+                have -= <span class="num">1</span>
+            L += <span class="num">1</span>
+    
+    L, R = res
+    <span class="kw">return</span> s[L:R+<span class="num">1</span>] <span class="kw">if</span> resLen != float(<span class="str">'inf'</span>) <span class="kw">else</span> <span class="str">""</span>
+</pre>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn" onclick="showSection(2)">← Previous</button>
+      <button class="btn primary" onclick="showSection(4)">Next: Advanced →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION 5: ADVANCED ═══════════ -->
+  <div class="section" id="sec4">
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🚀</span> Advanced: Linked List — Cycle Detection (Floyd's)</div>
+      <div class="concept-box">
+        <strong>Slow & Fast on Linked Lists:</strong> Slow moves 1 step, Fast moves 2 steps. If there's a cycle, they'll eventually meet. If fast reaches null — no cycle.
+      </div>
+<pre>
+<span class="kw">def</span> <span class="fn">has_cycle</span>(head):
+    slow = fast = head
+    <span class="kw">while</span> fast <span class="kw">and</span> fast.next:
+        slow = slow.next           <span class="cm"># 1 step</span>
+        fast = fast.next.next      <span class="cm"># 2 steps</span>
+        <span class="kw">if</span> slow == fast:
+            <span class="kw">return True</span>           <span class="cm"># cycle found!</span>
+    <span class="kw">return False</span>
+
+<span class="kw">def</span> <span class="fn">find_middle</span>(head):
+    slow = fast = head
+    <span class="kw">while</span> fast <span class="kw">and</span> fast.next:
+        slow = slow.next
+        fast = fast.next.next
+    <span class="kw">return</span> slow  <span class="cm"># slow is at middle!</span>
+</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔀</span> Advanced: Merge Two Sorted Arrays</div>
+      <div class="concept-box">
+        <strong>Two arrays, two pointers.</strong> Each pointer advances in its own array. Pick the smaller element each time.
+      </div>
+<pre>
+<span class="kw">def</span> <span class="fn">merge_sorted</span>(A, B):
+    i = j = <span class="num">0</span>
+    result = []
+    
+    <span class="kw">while</span> i &lt; len(A) <span class="kw">and</span> j &lt; len(B):
+        <span class="kw">if</span> A[i] &lt;= B[j]:
+            result.append(A[i]); i += <span class="num">1</span>
+        <span class="kw">else</span>:
+            result.append(B[j]); j += <span class="num">1</span>
+    
+    result += A[i:] + B[j:]  <span class="cm"># append remaining</span>
+    <span class="kw">return</span> result
+</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📊</span> Complexity Reference Table</div>
+      <table>
+        <tr><th>Problem</th><th>Time</th><th>Space</th><th>Pattern</th></tr>
+        <tr><td>Two Sum Sorted</td><td style="color:var(--accent)">O(n)</td><td>O(1)</td><td>Opposite ends</td></tr>
+        <tr><td>Three Sum</td><td style="color:#ff9f7f">O(n²)</td><td>O(1)</td><td>Fix + Opposite ends</td></tr>
+        <tr><td>Remove Duplicates</td><td style="color:var(--accent)">O(n)</td><td>O(1)</td><td>Fast & Slow</td></tr>
+        <tr><td>Container With Water</td><td style="color:var(--accent)">O(n)</td><td>O(1)</td><td>Opposite ends</td></tr>
+        <tr><td>Trapping Rain Water</td><td style="color:var(--accent)">O(n)</td><td>O(1)</td><td>Opposite ends</td></tr>
+        <tr><td>Linked List Cycle</td><td style="color:var(--accent)">O(n)</td><td>O(1)</td><td>Fast & Slow</td></tr>
+        <tr><td>Merge Sorted Arrays</td><td style="color:var(--accent)">O(n+m)</td><td>O(n+m)</td><td>Parallel traversal</td></tr>
+        <tr><td>Min Window Substring</td><td style="color:var(--accent)">O(n)</td><td>O(k)</td><td>Sliding window</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🧭</span> Decision Framework — Which Pointer Pattern?</div>
+<pre style="font-size:12px;">
+<span class="cm">Problem Type                    → Pattern to Use</span>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pair sum in sorted array        → Opposite ends (L,R)
+Palindrome check                → Opposite ends (L,R)
+Max/min with two boundaries     → Opposite ends (L,R)
+Remove elements in-place        → Fast & Slow (same dir)
+Partition array                 → Fast & Slow (same dir)
+Linked list cycle / middle      → Fast & Slow (slow=1,fast=2)
+Two sorted arrays               → Parallel (i on A, j on B)
+Substring / subarray window     → Sliding window (expand R, shrink L)
+</pre>
+    </div>
+
+    <div class="warn-box">
+      ⚠️ <strong>Common Mistakes:</strong><br><br>
+      1. <strong>Not sorting first</strong> — Two pointer on opposite ends only works on sorted arrays for pair problems.<br><br>
+      2. <strong>Off-by-one</strong> — Use <code>while L &lt; R</code> (not ≤) to avoid processing the same element twice.<br><br>
+      3. <strong>Forgetting duplicate skipping</strong> in 3Sum — without it, you get repeated triplets.<br><br>
+      4. <strong>Wrong pointer to move</strong> — always move based on the comparison result logically.
+    </div>
+
+    <div class="section-nav">
+      <button class="btn" onclick="showSection(3)">← Previous</button>
+      <button class="btn primary" onclick="showSection(5)">Next: Quiz →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION 6: QUIZ ═══════════ -->
+  <div class="section" id="sec5">
+    <div class="card">
+      <div class="card-title"><span class="icon">🧪</span> Knowledge Check</div>
+      <p style="color:var(--muted);font-size:14px;">Test your understanding. Click an option to see if you're right!</p>
+    </div>
+
+    <div class="quiz-q" id="q1">
+      <p>Q1. You have a sorted array and need to find a pair that sums to a target. What's the best time complexity?</p>
+      <div class="quiz-opt">
+        <label onclick="answer(this,'wrong')"><input type="radio">O(n²) — nested loops</label>
+        <label onclick="answer(this,'correct')"><input type="radio">O(n) — two pointers</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">O(n log n) — binary search per element</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">O(1) — hash map</label>
+      </div>
+    </div>
+
+    <div class="quiz-q" id="q2">
+      <p>Q2. In the "Container With Most Water" problem, when L's height is less than R's height, which pointer should you move?</p>
+      <div class="quiz-opt">
+        <label onclick="answer(this,'correct')"><input type="radio">Move L right (keep the taller R side)</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">Move R left (try to find a taller wall)</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">Move both inward</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">Move the pointer on the taller side</label>
+      </div>
+    </div>
+
+    <div class="quiz-q" id="q3">
+      <p>Q3. In Floyd's cycle detection (linked list), slow pointer moves 1 step and fast moves 2 steps. If there's NO cycle, fast pointer will:</p>
+      <div class="quiz-opt">
+        <label onclick="answer(this,'wrong')"><input type="radio">Loop forever</label>
+        <label onclick="answer(this,'correct')"><input type="radio">Reach null (end of list)</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">Catch up to slow</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">Stay at the middle</label>
+      </div>
+    </div>
+
+    <div class="quiz-q" id="q4">
+      <p>Q4. For 3Sum problem, after sorting, what's the overall time complexity of the two-pointer approach?</p>
+      <div class="quiz-opt">
+        <label onclick="answer(this,'wrong')"><input type="radio">O(n)</label>
+        <label onclick="answer(this,'correct')"><input type="radio">O(n²)</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">O(n³)</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">O(n log n)</label>
+      </div>
+    </div>
+
+    <div class="quiz-q" id="q5">
+      <p>Q5. In "Remove Duplicates from Sorted Array", the slow pointer represents:</p>
+      <div class="quiz-opt">
+        <label onclick="answer(this,'wrong')"><input type="radio">The element being compared</label>
+        <label onclick="answer(this,'correct')"><input type="radio">The last position where a unique value was written</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">The end of the array</label>
+        <label onclick="answer(this,'wrong')"><input type="radio">The count of duplicates found</label>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn" onclick="showSection(4)">← Previous</button>
+      <button class="btn primary" onclick="showSection(6)">Next: Cheat Sheet →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION 7: CHEAT SHEET ═══════════ -->
+  <div class="section" id="sec6">
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Two Pointer Cheat Sheet</div>
+      <div class="cheat-row">
+        <div class="cheat-key">OPPOSITE ENDS</div>
+        <div class="cheat-val">L=0, R=n-1. Move based on comparison. Array must be sorted for sum problems. Loop: while L &lt; R</div>
+      </div>
+      <div class="cheat-row">
+        <div class="cheat-key">FAST & SLOW</div>
+        <div class="cheat-val">Slow = write head. Fast = read head. Advance slow only when condition met. Used for in-place operations.</div>
+      </div>
+      <div class="cheat-row">
+        <div class="cheat-key">SLIDING WINDOW</div>
+        <div class="cheat-val">Expand R to add elements, shrink L when constraint violated. Track window state with hashmap/counter.</div>
+      </div>
+      <div class="cheat-row">
+        <div class="cheat-key">FLOYD'S ALGO</div>
+        <div class="cheat-val">slow += 1, fast += 2. Meet = cycle exists. Find middle: fast reaches end when slow is at mid.</div>
+      </div>
+      <div class="cheat-row">
+        <div class="cheat-key">3SUM TRICK</div>
+        <div class="cheat-val">Sort → Fix i → Two pointer on [i+1 .. n-1]. Skip duplicates with: if nums[i] == nums[i-1]: continue</div>
+      </div>
+      <div class="cheat-row">
+        <div class="cheat-key">RAIN WATER</div>
+        <div class="cheat-val">Track left_max and right_max. Move pointer on smaller side. Water = max - current height.</div>
+      </div>
+      <div class="cheat-row">
+        <div class="cheat-key">CONTAINER WATER</div>
+        <div class="cheat-val">Area = min(h[L],h[R]) × (R-L). Always move the shorter side inward to potentially find a taller wall.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🗂️</span> Problem Bank by Pattern</div>
+      <table>
+        <tr><th>Pattern</th><th>LeetCode Problems</th></tr>
+        <tr><td style="color:var(--accent)">Opposite Ends</td><td style="color:var(--muted)">167, 15, 16, 11, 42, 977, 844</td></tr>
+        <tr><td style="color:#ff9f7f">Fast & Slow</td><td style="color:var(--muted)">26, 27, 283, 80, 75, 905</td></tr>
+        <tr><td style="color:var(--accent3)">Floyd's Cycle</td><td style="color:var(--muted)">141, 142, 876, 234, 143</td></tr>
+        <tr><td style="color:#ffd700">Sliding Window</td><td style="color:var(--muted)">3, 76, 209, 424, 567, 1004</td></tr>
+        <tr><td style="color:#a8ff78">Parallel</td><td style="color:var(--muted)">88, 349, 350, 986, 1229</td></tr>
+      </table>
+    </div>
+
+    <div class="card" style="background:rgba(0,245,196,0.04);border-color:rgba(0,245,196,0.2);">
+      <div class="card-title"><span class="icon">🏆</span> Your Learning Path</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#000;font-size:12px;flex-shrink:0;">1</div>
+          <div><strong>Week 1:</strong> <span style="color:var(--muted)">Palindrome (125), Two Sum II (167), Move Zeroes (283)</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;background:rgba(0,245,196,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#000;font-size:12px;flex-shrink:0;">2</div>
+          <div><strong>Week 2:</strong> <span style="color:var(--muted)">3Sum (15), Container Water (11), Remove Dupes (26)</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;background:rgba(0,245,196,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#000;font-size:12px;flex-shrink:0;">3</div>
+          <div><strong>Week 3:</strong> <span style="color:var(--muted)">Trapping Rain Water (42), Linked List Cycle (141), Find Middle (876)</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;background:rgba(0,245,196,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent);font-size:12px;flex-shrink:0;">4</div>
+          <div><strong>Week 4:</strong> <span style="color:var(--muted)">Min Window Substring (76), Longest Substring No Repeat (3), Sliding Window Max (239)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn" onclick="showSection(5)">← Previous</button>
+      <button class="btn primary" onclick="showSection(0)">↺ Start Over</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── NAVIGATION ──
+  function showSection(n) {
+    document.querySelectorAll('.section').forEach((s,i) => s.classList.toggle('active', i===n));
+    document.querySelectorAll('.nav-item').forEach((el,i) => {
+      el.classList.remove('active','done');
+      if(i===n) el.classList.add('active');
+      if(i<n) el.classList.add('done');
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  // ── PROBLEM ACCORDION ──
+  function toggleProblem(header) {
+    const body = header.nextElementSibling;
+    const chev = header.querySelector('.chevron');
+    const open = body.classList.toggle('open');
+    chev.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  // ── QUIZ ──
+  function answer(label, verdict) {
+    const group = label.closest('.quiz-opt');
+    if(group.querySelector('.correct,.wrong')) return;
+    label.classList.add(verdict);
+    if(verdict==='wrong') {
+      group.querySelectorAll('label').forEach(l => {
+        if(!l.classList.contains('wrong') && !l.classList.contains('correct'))
+          l.style.opacity='0.4';
+      });
+    }
+  }
+
+  // ── VISUALIZER 1: Two Sum ──
+  const arr = [1, 3, 4, 5, 7, 8, 9, 12];
+  const target = 9;
+  let L, R, started = false;
+
+  function renderArr(left, right, matchL=-1, matchR=-1) {
+    const d = document.getElementById('arrDisplay');
+    d.innerHTML = arr.map((v,i) => {
+      let cls = 'arr-box';
+      if(i===matchL || i===matchR) cls += ' match';
+      else if(i===left) cls += ' left';
+      else if(i===right) cls += ' right';
+      return `<div class="${cls}">${v}<span class="arr-idx">${i}</span></div>`;
+    }).join('');
+    const label = document.getElementById('ptrLabel');
+    if(matchL>=0) {
+      label.innerHTML = `<span class="lbl-L">L=${matchL}</span> &nbsp;|&nbsp; <span class="lbl-R">R=${matchR}</span> &nbsp;|&nbsp; ✅ Found!`;
+    } else {
+      const s = arr[left]+arr[right];
+      label.innerHTML = `<span class="lbl-L">L=${left} (${arr[left]})</span> &nbsp;|&nbsp; <span class="lbl-R">R=${right} (${arr[right]})</span> &nbsp;|&nbsp; sum = ${s}`;
+    }
+  }
+
+  function viStart() {
+    L=0; R=arr.length-1; started=true;
+    renderArr(L,R);
+    document.getElementById('visStatus').textContent = `Initialized. L=0, R=${R}. sum = ${arr[L]+arr[R]}`;
+    document.getElementById('stepBtn').disabled = false;
+    document.getElementById('startBtn').disabled = true;
+  }
+
+  function viStep() {
+    if(!started) return;
+    const s = arr[L]+arr[R];
+    if(s === target) {
+      renderArr(0,0,L,R);
+      document.getElementById('visStatus').textContent = `✅ FOUND! arr[${L}] + arr[${R}] = ${arr[L]} + ${arr[R]} = ${target}`;
+      document.getElementById('stepBtn').disabled = true;
+      return;
+    }
+    if(s < target) {
+      document.getElementById('visStatus').textContent = `sum ${s} < target ${target} → Move L right`;
+      L++;
+    } else {
+      document.getElementById('visStatus').textContent = `sum ${s} > target ${target} → Move R left`;
+      R--;
+    }
+    if(L>=R) {
+      document.getElementById('visStatus').textContent = '❌ No pair found (L >= R)';
+      document.getElementById('stepBtn').disabled = true;
+      return;
+    }
+    renderArr(L,R);
+    document.getElementById('visStatus').textContent += ` → now L=${L} (${arr[L]}), R=${R} (${arr[R]}), sum=${arr[L]+arr[R]}`;
+  }
+
+  function viReset() {
+    started=false;
+    document.getElementById('arrDisplay').innerHTML='';
+    document.getElementById('visStatus').textContent = 'Press ▶ START to begin';
+    document.getElementById('ptrLabel').innerHTML = 'L=0 &nbsp;|&nbsp; R=7 &nbsp;|&nbsp; sum=?';
+    document.getElementById('stepBtn').disabled = true;
+    document.getElementById('startBtn').disabled = false;
+  }
+
+  // ── VISUALIZER 2: Palindrome ──
+  const word = 'racecar';
+  let pL, pR, palStarted=false;
+
+  function renderPal(left, right, match=false, done=false) {
+    const d = document.getElementById('palDisplay');
+    d.innerHTML = word.split('').map((c,i) => {
+      let cls = 'arr-box';
+      if(done) cls += ' match';
+      else if(i===left && i===right) cls += ' match';
+      else if(i===left) cls += ' left';
+      else if(i===right) cls += ' right';
+      return `<div class="${cls}" style="width:44px;height:44px;font-size:18px;">${c}<span class="arr-idx">${i}</span></div>`;
+    }).join('');
+    document.getElementById('palLabel').innerHTML = `<span class="lbl-L">L=${left} ('${word[left]}')</span> &nbsp;|&nbsp; <span class="lbl-R">R=${right} ('${word[right]}')</span>`;
+  }
+
+  function palStart() {
+    pL=0; pR=word.length-1; palStarted=true;
+    renderPal(pL,pR);
+    document.getElementById('palStatus').textContent = `Checking "${word}" for palindrome`;
+    document.getElementById('palStep').disabled = false;
+  }
+
+  function palStep() {
+    if(!palStarted) return;
+    if(pL >= pR) {
+      renderPal(pL,pR,false,true);
+      document.getElementById('palStatus').textContent = `✅ "${word}" IS a palindrome!`;
+      document.getElementById('palStep').disabled = true;
+      return;
+    }
+    if(word[pL] !== word[pR]) {
+      document.getElementById('palStatus').textContent = `❌ Mismatch: '${word[pL]}' ≠ '${word[pR]}'. NOT a palindrome.`;
+      document.getElementById('palStep').disabled = true;
+      return;
+    }
+    document.getElementById('palStatus').textContent = `'${word[pL]}' == '${word[pR]}' ✓ → move pointers inward`;
+    pL++; pR--;
+    renderPal(pL,pR);
+  }
+
+  function palReset() {
+    palStarted=false;
+    document.getElementById('palDisplay').innerHTML='';
+    document.getElementById('palStatus').textContent = 'Press ▶ START to check "racecar"';
+    document.getElementById('palLabel').innerHTML = '';
+    document.getElementById('palStep').disabled = true;
+  }
+</script>
+</body>
+</html>
